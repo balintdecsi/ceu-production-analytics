@@ -1462,7 +1462,6 @@ The goal of this assignment is to confirm that you have a general understanding 
 
 To minimize the system administration and some of the already-covered engineering tasks for the students, the below pre-configured tools are provided as free options, but students can decide to build their own environment (on the top of or independently from these) and feel free to use any other tools:
 
-* `crypto` stream in the Ireland region of the central CEU AWS account with the real-time order data from the Binance cryptocurrency exchange on Bitcoin (BTC), Ethereum (ETH), Litecoin (LTC), Neo (NEO), Binance Coin (BNB) and Tether (USDT) -- including the the attributes of each transaction as specified at https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md#trade-streams
 * `de3` Amazon Machine Image that you can use to spin up an EC2 node with RStudio Server, Shiny Server, Jenkins, Redis and Docker installed & pre-configured (use your AWS username and the password shared on Slack previously) along with the most often used R packages (including the ones we used for stream processing, eg `botor`, `AWR.Kinesis` and the `binancer` package)
 * `de3` EC2 IAM role with full access to Kinesis, Dynamodb, Cloudwatch and the `slack` token in the Parameter Store
 * `de3` security group with open ports for RStudio Server and Jenkins
