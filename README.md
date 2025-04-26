@@ -9,7 +9,6 @@ Here you can find the materials for the "[Data Engineering 3: Batch Jobs and API
 * [Technical Prerequisites](#technical-prerequisites)
 * [Class Schedule](#class-schedule)
 
-* [Homeworks](#homeworks)
 * [Home assignment](#home-assignment)
 * [Getting help](#getting-help)
 
