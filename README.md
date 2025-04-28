@@ -161,6 +161,19 @@ As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking 
 
     And optionally also reboot so that kernel upgrades can take effect.
 
+3. Install R
+
+    ```sh
+    sudo apt install r-base
+    ```
+
+    To avoid manually answering "Yes" to the question to confirm installation, you can specify the `-y` flag:
+
+    ```sh
+    sudo apt install -y r-base
+    ```
+
+
 Will be updated from week to week.
 
 ## Getting help
