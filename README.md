@@ -142,6 +142,25 @@ ssh -i /path/to/your/pem ubuntu@ip-address-of-your-machine
 
 As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking "Connect" in the context menu of the instance (triggered by right click in the table).
 
+### Install RStudio Server on EC2
+
+1. Look at the docs: https://www.rstudio.com/products/rstudio/download-server
+2. First, we will upgrade the system to the most recent version of the already installed packages. Note, check on the concept of a package manager!
+
+    Download Ubuntu `apt` package list:
+
+    ```sh
+    sudo apt update
+    ```
+
+    Optionally upgrade the system:
+
+    ```sh
+    sudo apt upgrade
+    ```
+
+    And optionally also reboot so that kernel upgrades can take effect.
+
 Will be updated from week to week.
 
 ## Getting help
