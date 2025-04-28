@@ -137,7 +137,7 @@ Alternatively, you can connect via a standard SSH client on a Mac or Linux, some
 
 ```sh
 chmod 0400 /path/to/your/pem
-ssh -i /path/to/your/pem -p 8000 ubuntu@ip-address-of-your-machine
+ssh -i /path/to/your/pem ubuntu@ip-address-of-your-machine
 ```
 
 As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking "Connect" in the context menu of the instance (triggered by right click in the table).
