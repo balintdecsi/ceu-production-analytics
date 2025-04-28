@@ -174,6 +174,43 @@ As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking 
     ```
 
 
+4. Try R
+
+    ```sh
+    R
+    ```
+
+    For example:
+
+    ```r
+    1 + 4
+    hist(mtcars$hp)
+    # duh, where is the plot?!
+    ```
+
+    Exit:
+
+    ```r
+    q()
+    ```
+
+    Look at the files:
+
+    ```sh
+    ls
+    ls -latr
+    ```
+
+
+5. Install RStudio Server
+
+    ```sh
+    wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2023.12.1-402-amd64.deb
+    sudo apt install -y gdebi-core
+    sudo gdebi rstudio-server-2023.12.1-402-amd64.deb
+    ```
+
+6. Check process and open ports
 Will be updated from week to week.
 
 ## Getting help
