@@ -211,6 +211,105 @@ As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking 
     ```
 
 6. Check process and open ports
+
+    ```sh
+    rstudio-server status
+    sudo rstudio-server status
+    sudo systemctl status rstudio-server
+    sudo ps aux | grep rstudio
+
+    sudo apt -y install net-tools
+    sudo netstat -tapen | grep LIST
+    sudo netstat -tapen
+    ```
+
+7. Look at the docs: http://docs.rstudio.com/ide/server-pro/
+
+### Connect to the RStudio Server
+
+1. Confirm that the service is up and running and the port is open
+
+    ```console
+    ubuntu@ip-172-31-12-150:~$ sudo netstat -tapen | grep LIST
+    tcp        0      0 0.0.0.0:8787            0.0.0.0:*               LISTEN      0          49065       23587/rserver
+    tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      0          15671       1305/sshd
+    tcp6       0      0 :::22                   :::*                    LISTEN      0          15673       1305/sshd
+    ```
+
+2. Try to connect to the host from a browser on port 8787, eg http://foobar.eu-west-1.compute.amazonaws.com:8787
+3. Realize it's not working
+4. Open up port 8787 in the security group, by selecting your security group and click "Edit inbound rules":
+
+    ![](https://user-images.githubusercontent.com/495736/222724348-869d0703-05f2-4ef3-bd80-574362e73265.png)
+
+5. Authentication: http://docs.rstudio.com/ide/server-pro/authenticating-users.html
+6. Create a new user:
+
+        sudo adduser ceu
+
+7. Login & quick demo:
+
+    ```r
+    1+2
+    plot(mtcars)
+    install.packages('fortunes')
+    library(fortunes)
+    fortune()
+    fortune(200)
+    system('whoami')
+    ```
+
+8. Reload webpage (F5), realize we continue where we left the browser :)
+9. Demo the terminal:
+
+    ```console
+    $ whoami
+    ceu
+    $ sudo whoami
+    ceu is not in the sudoers file.  This incident will be reported.
+    ```
+
+8. Grant sudo access to the new user by going back to SSH with `root` access:
+
+    ```sh
+    sudo apt install -y mc
+    sudo mc
+    sudo mcedit /etc/sudoers
+    sudo adduser ceu admin
+    man adduser
+    man deluser
+    ```
+
+Note 1: might need to relogin / restart RStudio / reload R / reload page .. to force a new shell login so that the updated group setting is applied
+Note 2: you might want to add `NOPASSWD` to the `sudoers` file:
+
+    ```sh
+    ceu ALL=(ALL) NOPASSWD:ALL
+    ```
+
+Although also note (3) the related security risks.
+
+9. Custom login page: http://docs.rstudio.com/ide/server-pro/authenticating-users.html#customizing-the-sign-in-page
+10. Custom port (e.g. 80): http://docs.rstudio.com/ide/server-pro/access-and-security.html#network-port-and-address
+
+    ```sh
+    echo "www-port=80" | sudo tee -a /etc/rstudio/rserver.conf
+    sudo rstudio-server restart
+
+### Play with R for a bit
+
+0. Note the pretty outdated R version ... so let's update R:
+
+    ```sh
+    wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+    sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+
+    ## fetch most recent list of packages and version, then auto-upgrade
+    sudo apt-get update && sudo apt-get -y upgrade
+    ```
+
+    Now try R in the console, then restart R in RStudio (Session/Quit Session). Also a good time to clean up the Terminal (brush icon in the top right of the panel).
+
 Will be updated from week to week.
 
 ## Getting help
