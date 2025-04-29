@@ -205,9 +205,9 @@ As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking 
 5. Install RStudio Server
 
     ```sh
-    wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2023.12.1-402-amd64.deb
+    wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2024.12.1-563-amd64.deb
     sudo apt install -y gdebi-core
-    sudo gdebi rstudio-server-2023.12.1-402-amd64.deb
+    sudo gdebi rstudio-server-2024.12.1-563-amd64.deb
     ```
 
 6. Check process and open ports
@@ -321,7 +321,7 @@ Although also note (3) the related security risks.
 
     ```sh
     wget -q -O- https://eddelbuettel.github.io/r2u/assets/dirk_eddelbuettel_key.asc | sudo tee -a /etc/apt/trusted.gpg.d/cranapt_key.asc
-    sudo add-apt-repository "deb [arch=amd64] https://r2u.stat.illinois.edu/ubuntu jammy main"
+    sudo add-apt-repository "deb [arch=amd64] https://r2u.stat.illinois.edu/ubuntu noble main"
     sudo apt update
 
     sudo apt-get install -y r-cran-ggplot2
