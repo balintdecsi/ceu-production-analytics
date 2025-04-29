@@ -50,6 +50,7 @@ Excerpts from https://daroczig.github.io/talks
 * "Analytics databases in a startup environment: beyond MySQL and Spark" (Budapest Data Forum 2018)
 
 ### Welcome to AWS!
+
 1. Use the following sign-in URL to access the class AWS account: https://657609838022.signin.aws.amazon.com/console
 2. Secure your access key(s), other credentials and any login information ...
 
@@ -296,49 +297,17 @@ Although also note (3) the related security risks.
     echo "www-port=80" | sudo tee -a /etc/rstudio/rserver.conf
     sudo rstudio-server restart
 
-### Play with R for a bit
+### Update R
 
-0. Note the pretty outdated R version ... so let's update R:
+Note the pretty outdated R version ... so let's update R by using the apt repo managed by the CRAN team:
 
-    ```sh
-    wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
-    sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+```sh
+wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
+sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
 
-    ## fetch most recent list of packages and version, then auto-upgrade
-    sudo apt-get update && sudo apt-get -y upgrade
-    ```
-
-    Now try R in the console, then restart R in RStudio (Session/Quit Session). Also a good time to clean up the Terminal (brush icon in the top right of the panel).
-
-1. Installing packages:
-
-    ```sh
-    ## don't do this at this point!
-    ## install.packages('ggplot2')
-    ```
-
-2. Use binary packages instead as per https://github.com/eddelbuettel/r2u
-
-    ```sh
-    wget -q -O- https://eddelbuettel.github.io/r2u/assets/dirk_eddelbuettel_key.asc | sudo tee -a /etc/apt/trusted.gpg.d/cranapt_key.asc
-    sudo add-apt-repository "deb [arch=amd64] https://r2u.stat.illinois.edu/ubuntu noble main"
-    sudo apt update
-
-    sudo apt-get install -y r-cran-ggplot2
-    ```
-
-    Note that all dependencies (let it be an R package or system/Ubuntu package) have been automatically resolved and installed.
-
-    Don't forget to click on the brush icon to clean up your terminal output if needed.
-
-    Optionally [enable `bspm`](https://github.com/eddelbuettel/r2u#step-5-use-bspm-optional) to enable binary package installations via the traditional `install.packages` R function.
-
-3. Ready to use it from R after restarting the session:
-
-    ```r
-    library(ggplot2)
-    ggplot(mtcars, aes(hp)) + geom_histogram()
-    ```
+## fetch most recent list of packages and version, then auto-upgrade
+sudo apt-get update && sudo apt-get -y upgrade
+```
 
 Will be updated from week to week.
 
