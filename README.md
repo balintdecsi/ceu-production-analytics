@@ -889,6 +889,47 @@ Let's schedule a Jenkins job to check on the Bitcoin prices every hour!
     6. Run the job
     7. Look at the workspace that can be accessed from the sidebar menu of the job.
 
+### ScheduleR improvements
+
+1. Use a git repository to store the R scripts and fetch the most recent version on job start:
+
+    1. Configure the Jenkins job to use "Git" in the "Source Code Management" section, and use e.g. https://gist.github.com/daroczig/e5d3ee3664549932bb7f23ce8e93e472 as the repo URL, and specify the branch (`main`).
+    2. Update the Execute task section to refer to the `btcprice.R` file of the repo instead of the hardcoded local path.
+    3. Make edits to the repo, e.g. update lookback to 3 hours and check a future job output.
+
+2. Set up e-mail notifications via eg https://app.mailjet.com/signin
+
+    1. 💪 Sign up, confirm your e-mail address and domain
+    2. 💪 Take a note on the SMTP settings, eg
+
+        * SMTP server: in-v3.mailjet.com
+        * Port: 465
+        * SSL: Yes
+        * Username: ***
+        * Password: ***
+
+    3. 💪 Configure Jenkins at http://de3.ceudata.net/jenkins/configure
+
+        1. Set up the default FROM e-mail address at "System Admin e-mail address": jenkins@ceudata.net
+        2. Search for "Extended E-mail Notification" and configure
+
+           * SMTP Server
+           * Click "Advanced"
+           * Check "Use SMTP Authentication"
+           * Enter User Name from the above steps
+           * Enter Password from the above steps
+           * Check "Use SSL"
+           * SMTP port: 465
+
+    5. Set up "Post-build Actions" in Jenkins: Editable Email Notification - read the manual and info popups, configure to get an e-mail on job failures and fixes
+    6. Configure the job to send the whole e-mail body as the deault body template for all outgoing emails
+
+    ```shell
+    ${BUILD_LOG, maxLines=1000}
+    ```
+
+3. Look at other Jenkins plugins, eg the Slack Notifier: https://plugins.jenkins.io/slack
+
 
 
 
