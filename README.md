@@ -808,46 +808,28 @@ Let's schedule a Jenkins job to check on the Bitcoin prices every hour!
     ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/jenkins-errors.png)
 
 4. Debug & figure out what's the problem ...
+5. Install R packages system wide from RStudio/Terminal (more on this later):
 
-        <details><summary>Click here for the code generating the above ...</summary>
+    Either start R in the terminal as the root user (via `sudo R`) and run the previous `devtools::install_github` command there, or with a one-liner:
 
-        ```r
-        library(binancer)
-        klines <- binance_klines('BTCUSDT', interval = '1m', limit = 60*3)
-        str(klines)
-        summary(klines$close)
-        ```
-        </details>
+    ```sh
+    sudo Rscript -e "library(devtools);withr::with_libpaths(new = '/usr/local/lib/R/site-library', install_github('daroczig/binancer', upgrade = FALSE))"
+    ```
 
-    4. Visualize the data, eg on a simple line chart:
 
-        ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/binancer-plot-1.png)
 
-        <details><summary>Click here for the code generating the above ...</summary>
 
-        ```r
-        library(ggplot2)
-        ggplot(klines, aes(close_time, close)) + geom_line()
-        ```
-        </details>
 
-    5. Now create a candle chart, something like:
 
-        ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/binancer-plot-2.png)
 
-        <details><summary>Click here for the code generating the above ...</summary>
 
-        ```r
-        library(scales)
-        ggplot(klines, aes(open_time)) +
+    ```r
             geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
             geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
             theme_bw() + theme('legend.position' = 'none') + xlab('') +
             ggtitle(paste('Last Updated:', Sys.time())) +
             scale_y_continuous(labels = dollar) +
-            scale_color_manual(values = c('#1a9850', '#d73027')) # RdYlGn
         ```
-        </details>
 
     6. Compare prices of 4 currencies (eg BTC, ETH, BNB and XRP) in the past 24 hours on 15 mins intervals:
 
