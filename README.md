@@ -311,6 +311,8 @@ sudo apt-get update && sudo apt-get -y upgrade
 
 ## Week 2
 
+Quiz: https://forms.office.com/e/SgME7mHPM9 (5 mins)
+
 ### Recap
 
 What we covered last week:
