@@ -782,36 +782,32 @@ Install `ggplot2` or your preferred Python packages to replicate the below steps
     - go back in time 1 / 12 / 24 months and "invest" $1K in BTC and see the value today
     - write a bot buying and selling crypto on a virtual exchange
 
+### Schedule R commands
+
+Let's schedule a Jenkins job to check on the Bitcoin prices every hour!
+
+1. Visit Jenkins using the `/jenkins` URL path of your instance's public IP address
+2. Use your UNIX username and a password to log in
+
+    If logging in takes a long time, it might be due to the Dark Theme plugin trying to load a CSS file from an outdated location absed on the Jenkins URL configured at `/jenkins/manage/configure`. To overcome this issue, wait it out at the above URL and update the IP address to your new dynamic IP address, or disable the plugin at `/jenkins/manage/pluginManager/installed` and then restart Jenkins at the bottom of the page.
+
+3. Create a "New Item" (job):
+
+    1. Enter the name of the job: `get current Bitcoin price`
+    2. Pick "Freestyle project"
+    3. Click "OK"
+    4. Add a new "Execute shell" build step
+    5. Enter the below command to look up the most recent BTC price
 
         ```sh
-        sudo apt-get install -y r-cran-devtools r-cran-data.table r-cran-httr r-cran-jsonlite r-cran-data.table r-cran-stringi r-cran-stringr r-cran-glue r-cran-logger r-cran-snakecase
+        R -e "library(binancer);binance_coins_prices()[symbol == 'BTC', usd]"
         ```
 
-    2. Switch back to the R console and install the `binancer` R package from GitHub to interact with crypto exchanges (note the extra dependency to be installed from CRAN, no need to update any already installed package):
+    6. Run the job
 
-        ```r
-        devtools::install_github('daroczig/binancer', upgrade = FALSE)
-        ```
+    ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/jenkins-errors.png)
 
-    3. First steps with live data: load the `binancer` package and then use the `binance_klines` function to get the last 3 hours of Bitcoin price changes (in USD) with 1-minute granularity -- resulting in an object like:
-
-        ```r
-        > str(klines)
-        Classes ‘data.table’ and 'data.frame':  180 obs. of  12 variables:
-         $ open_time                   : POSIXct, format: "2020-03-08 20:09:00" "2020-03-08 20:10:00" "2020-03-08 20:11:00" "2020-03-08 20:12:00" ...
-         $ open                        : num  8292 8298 8298 8299 8298 ...
-         $ high                        : num  8299 8299 8299 8299 8299 ...
-         $ low                         : num  8292 8297 8297 8298 8296 ...
-         $ close                       : num  8298 8298 8299 8298 8299 ...
-         $ volume                      : num  25.65 9.57 20.21 9.65 24.69 ...
-         $ close_time                  : POSIXct, format: "2020-03-08 20:09:59" "2020-03-08 20:10:59" "2020-03-08 20:11:59" "2020-03-08 20:12:59" ...
-         $ quote_asset_volume          : num  212759 79431 167677 80099 204883 ...
-         $ trades                      : int  371 202 274 186 352 271 374 202 143 306 ...
-         $ taker_buy_base_asset_volume : num  13.43 5.84 11.74 7.12 15.24 ...
-         $ taker_buy_quote_asset_volume: num  111430 48448 97416 59071 126493 ...
-         $ symbol                      : chr  "BTCUSDT" "BTCUSDT" "BTCUSDT" "BTCUSDT" ...
-         - attr(*, ".internal.selfref")=<externalptr>
-        ```
+4. Debug & figure out what's the problem ...
 
         <details><summary>Click here for the code generating the above ...</summary>
 
