@@ -69,7 +69,7 @@ Excerpts from https://daroczig.github.io/talks
 
 3. Let's use the `eu-west-1` Ireland region
 
-## Getting access to EC2 boxes
+### Getting access to EC2 boxes
 
 **Note**: we follow the instructions on Windows in the Computer Lab, but please find below how to access the boxes from Mac or Linux as well when working with the instances remotely.
 
@@ -308,6 +308,24 @@ sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_
 ## fetch most recent list of packages and version, then auto-upgrade
 sudo apt-get update && sudo apt-get -y upgrade
 ```
+
+## Week 2
+
+### Recap
+
+What we covered last week:
+
+1. 2FA/MFA in AWS
+2. Creating EC2 nodes
+3. Connecting to EC2 nodes via SSH/Putty (note the difference between the PPK and PEM key formats)
+4. Updating security groups
+5. Installing RStudio Server
+6. The difference between R console and Shell
+7. The use of `sudo` and how to grant `root` (system administrator) privileges
+8. Adding new Linux users, setting password, adding to group
+9. Messing up package updates and making RStudio Server unusable
+
+Note that you do NOT need to do the instructions below marked with the 💪 emoji -- those have been already done for you, and the related steps are only included below for documenting what has been done and demonstrated in the class.
 
 Will be updated from week to week.
 
