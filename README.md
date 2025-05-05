@@ -1040,6 +1040,32 @@ redisMGet(redisKeys('username:price:*'))
 ```
 </details>
 
+More on databases at the "Mastering R" class in the Spring semester ;)
+
+### Interacting with MS Teams
+
+1. Join the #bots-bots-bots channel in the DE3 course's MS Teams
+2. Click on "Connectors" in the channel's config and add an incoming webhook with your username and optional logo, store the URL for later use
+3. 💪 Install the `teamr` package from CRAN
+
+    ```shell
+    sudo apt install -y r-cran-teamr
+    ```
+
+4. Use the webhook URL to send messages to the channel from R:
+
+    ```r
+    library(teamr)
+    webhook_url <- "https://ceuedu.webhook.office.com/webhookb2/..."
+    # create new connector card
+    cc <- connector_card$new(hookurl = webhook_url)
+    # set the title and text of the message
+    cc$title("Hi from R!")
+    cc$text("This is a test message sent using the `teamr` package.")
+    # send the message
+    cc$send()
+    ```
+
 
 
 
