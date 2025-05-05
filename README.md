@@ -352,6 +352,436 @@ Then you can use the newly created `de3-week2` AMI to spin up a new instance for
 8. Click "Advanced details" and select `ceudataserver` IAM instance profile
 9. Click "Launch instance"
 10. Note and click on the instance id
+
+### 💪 Create a user for every member of the team
+
+We'll export the list of IAM users from AWS and create a system user for everyone.
+
+1. Attach a newly created IAM EC2 Role (let's call it `ceudataserver`) to the EC2 box and assign 'Read-only IAM access' (`IAMReadOnlyAccess`):
+
+    ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/master/images/ec2-new-role.png)
+
+    ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/master/images/ec2-new-role-type.png)
+
+    ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/master/images/ec2-new-role-rights.png)
+
+2. Install AWS CLI tool (note that using the snap package manager as it was removed from the apt repos):
+
+    ```
+    sudo snap install aws-cli --classic
+    ```
+
+3. List all the IAM users: https://docs.aws.amazon.com/cli/latest/reference/iam/list-users.html
+
+   ```
+   aws iam list-users
+   ```
+
+4. Install R packages from JSON parsing and logging (in the next steps) from the apt repo instead of CRAN sources as per https://github.com/eddelbuettel/r2u
+
+    ```sh
+    wget -q -O- https://eddelbuettel.github.io/r2u/assets/dirk_eddelbuettel_key.asc | sudo tee -a /etc/apt/trusted.gpg.d/cranapt_key.asc
+    sudo add-apt-repository "deb [arch=amd64] https://r2u.stat.illinois.edu/ubuntu noble main"
+    sudo apt update
+
+    sudo apt-get install -y r-cran-jsonlite r-cran-logger r-cran-glue
+    ```
+
+    Note that all dependencies (let it be an R package or system/Ubuntu package) have been automatically resolved and installed.
+
+    Don't forget to click on the brush icon to clean up your terminal output if needed.
+
+    Optionally [enable `bspm`](https://github.com/eddelbuettel/r2u#step-5-use-bspm-optional) to enable binary package installations via the traditional `install.packages` R function.
+
+5. Export the list of users from R:
+
+   ```
+   library(jsonlite)
+   users <- fromJSON(system('aws iam list-users', intern = TRUE))
+   str(users)
+   users[[1]]$UserName
+   ```
+
+6. Create a new system user on the box (for RStudio Server access) for every IAM user, set password and add to group:
+
+   ```
+   library(logger)
+   library(glue)
+   for (user in users[[1]]$UserName) {
+
+     ## remove invalid character
+     user <- sub('@.*', '', user)
+     user <- sub('.', '_', user, fixed = TRUE)
+
+     log_info('Creating {user}')
+     system(glue("sudo adduser --disabled-password --quiet --gecos '' {user}"))
+
+     log_info('Setting password for {user}')
+     system(glue("echo '{user}:secretpass' | sudo chpasswd")) # note the single quotes + placement of sudo
+
+     log_info('Adding {user} to sudo group')
+     system(glue('sudo adduser {user} sudo'))
+
+   }
+   ```
+
+Note, you may have to temporarily enable passwordless `sudo` for this user (if have not done already) :/
+
+```
+ceu ALL=(ALL) NOPASSWD:ALL
+```
+
+Check users:
+
+```
+readLines('/etc/passwd')
+```
+
+### 💪 Install Jenkins to schedule R commands
+
+![](https://wiki.jenkins-ci.org/download/attachments/2916393/fire-jenkins.svg)
+
+1. Install Jenkins from the RStudio/Terminal: https://www.jenkins.io/doc/book/installing/linux/#debianubuntu
+
+    ```sh
+    sudo apt install -y fontconfig openjdk-17-jre
+
+    sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+      https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+    echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+      https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+      /etc/apt/sources.list.d/jenkins.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install -y jenkins
+
+    # check which port is open by java (jenkins)
+    sudo ss -tapen | grep java
+    ```
+
+2. Open up port 8080 in the related security group
+3. Access Jenkins from your browser and finish installation
+
+    1. Read the initial admin password from RStudio/Terminal via
+
+        ```sh
+        sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+        ```
+
+    2. Proceed with installing the suggested plugins
+    3. Create your first user (eg `ceu`)
+
+Note that if loading Jenkins after getting a new IP takes a lot of time, it might be due to
+not be able to load the `theme.css` as trying to search for that on the previous IP (as per
+Jenkins URL setting). To overcome this, wait 2 mins for the `theme.css` timeout, login, disable
+the dark theme: https://github.com/jenkinsci/dark-theme-plugin/issues/458
+
+### 💪 Update Jenkins for shared usage
+
+Update the security backend to use real Unix users for shared access (if users already created):
+
+![](https://user-images.githubusercontent.com/495736/224517493-652ac34e-f44d-4ac9-8d04-d661dcfc4c4b.png)
+
+And allow `jenkins` to authenticate UNIX users and restart:
+
+```sh
+sudo adduser jenkins shadow
+sudo systemctl restart jenkins
+```
+
+Then make sure to test new user access in an incognito window to avoid closing yourself out :)
+
+### 💪 Set up an easy to remember IP address
+
+Optionally you can associate a fixed IP address to your box:
+
+1. Allocate a new Elastic IP address at https://eu-west-1.console.aws.amazon.com/ec2/v2/home?region=eu-west-1#Addresses:
+2. Name this resource by assigning a "Name" tag
+3. Associate this Elastic IP with your stopped box, then start it
+
+### 💪 Set up an easy to remember domain name
+
+Optionally you can associate a subdomain with your node, using the above created Elastic IP address:
+
+1. Go to Route 53: https://console.aws.amazon.com/route53/home
+2. Go to Hosted Zones and click on `ceudata.net`
+3. Create a new Record, where
+
+    - fill in the desired `Name` (subdomain), eg `de3.ceudata.net`
+    - paste the public IP address or hostname of your server in the `Value` field
+    - click `Create`
+
+4. Now you will be able to access your box using this custon (sub)domain, no need to remember IP addresses.
+
+### 💪 Configuring for standard ports
+
+To avoid using ports like `8787` and `8080` (and get blocked by the firewall installed on the CEU WiFi), let's configure our services to listen on the standard 80 (HTTP) and potentially on the 443 (HTTPS) port as well, and serve RStudio on the `/rstudio`, and Jenkins on the `/jenkins` path.
+
+For this end, we will use Nginx as a reverse-proxy, so let's install it first:
+
+```shell
+sudo apt install -y nginx
+```
+
+First, we need to edit the Nginx config to enable websockets for Shiny apps etc in `/etc/nginx/nginx.conf` under the `http` section:
+
+```
+  map $http_upgrade $connection_upgrade {
+      default upgrade;
+      ''      close;
+    }
+```
+
+Then we need to edit the main site's configuration at `/etc/nginx/sites-enabled/default` to act as a proxy, which also do some transformations, eg rewriting the URL (removing the `/rstudio` path) before hitting RStudio Server:
+
+```
+server {
+    listen 80;
+    rewrite ^/rstudio$ $scheme://$http_host/rstudio/ permanent;
+    location /rstudio/ {
+      rewrite ^/rstudio/(.*)$ /$1 break;
+      proxy_pass http://localhost:8787;
+      proxy_redirect http://localhost:8787/ $scheme://$http_host/rstudio/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_read_timeout 20d;
+    }
+}
+```
+
+And restart Nginx:
+
+```shell
+sudo systemctl restart nginx
+```
+
+Find more information at https://support.rstudio.com/hc/en-us/articles/200552326-Running-RStudio-Server-with-a-Proxy.
+
+Let's see if the port is open on the machine:
+
+```shell
+sudo ss -tapen|grep LIST
+```
+
+Let's see if we can access RStudio Server on the new path:
+
+```shell
+curl localhost/rstudio
+```
+
+Now let's see from the outside world ... and realize that we need to open up port 80!
+
+Now we need to tweak the config to support Jenkins as well, but the above Nginx rewrite hack will not work (see https://www.jenkins.io/doc/book/system-administration/reverse-proxy-configuration-troubleshooting/ for more details), so we will just make it a standard reverse-proxy, eg:
+
+```
+server {
+    listen 80;
+    rewrite ^/rstudio$ $scheme://$http_host/rstudio/ permanent;
+    location / {
+
+    }
+    location /rstudio/ {
+      rewrite ^/rstudio/(.*)$ /$1 break;
+      proxy_pass http://localhost:8787;
+      proxy_redirect http://localhost:8787/ $scheme://$http_host/rstudio/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_read_timeout 20d;
+    }
+    location ^~ /jenkins/ {
+      proxy_pass http://127.0.0.1:8080/jenkins/;
+      proxy_set_header X-Real-IP  $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header Host $host;
+    }
+}
+```
+
+And we also need to let Jenkins also know about the custom path, so uncomment `Environment="JENKINS_PREFIX=/jenkins"` in `/lib/systemd/system/jenkins.service`, then reload the Systemd configs and restart Jenkins:
+
+```shell
+sudo systemctl daemon-reload
+sudo systemctl restart jenkins
+```
+
+See more details at the [Jenkins reverse proxy guide](https://www.jenkins.io/doc/book/system-administration/reverse-proxy-configuration-with-jenkins/reverse-proxy-configuration-nginx/).
+
+Optionally, replace the default, system-wide `index.html` for folks visiting the root domain without either the `rstudio` or `jenkins` path (note that instead of the editing the file, which might be overwritten with package updates, it would be better to create a new HTML file and refer that from the Nginx configuration, but we will keep it simple and dirty for now):
+
+```shell
+echo "Welcome to DE3! Are you looking for <code>/rstudio</code> or <code>/jenkins</code>?" | sudo tee /usr/share/nginx/html/index.html
+```
+
+Then restart Jenkins, and good to go!
+
+It might be useful to also proxy port 8000 for future use via updating the Nginx config to:
+
+```
+server {
+    listen 80;
+    rewrite ^/rstudio$ $scheme://$http_host/rstudio/ permanent;
+    location / {
+
+    }
+    location /rstudio/ {
+      rewrite ^/rstudio/(.*)$ /$1 break;
+      proxy_pass http://localhost:8787;
+      proxy_redirect http://localhost:8787/ $scheme://$http_host/rstudio/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_read_timeout 20d;
+    }
+    location ^~ /jenkins/ {
+      proxy_pass http://127.0.0.1:8080/jenkins/;
+      proxy_set_header X-Real-IP  $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header Host $host;
+    }
+    location ^~ /8000/ {
+      rewrite ^/8000/(.*)$ /$1 break;
+      proxy_pass http://127.0.0.1:8000;
+      proxy_set_header X-Real-IP  $remote_addr;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header Host $host;
+    }
+}
+```
+
+This way you can access the above services via the below URLs:
+
+RStudio Server:
+
+* http://your.ip.address:8787
+* http://your.ip.address/rstudio
+
+Jenkins:
+
+* http://your.ip.address:8080/jenkins
+* http://your.ip.address/jenkins
+
+Port 8000:
+
+* http://your.ip.address:8000
+* http://your.ip.address/8000
+
+If you cannot access RStudio Server on port 80, you might need to restart `nginx` as per above.
+
+Next, set up SSL either with Nginx or placing an AWS Load Balancer in front of the EC2 node.
+
+## Warmup exercises
+
+Install `ggplot2` or your preferred Python packages to replicate the below steps that we will automate later:
+
+    1. Install the `devtools` R package and a few others (binary distribution) in the RStudio/Terminal:
+
+        ```sh
+        sudo apt-get install -y r-cran-devtools r-cran-data.table r-cran-httr r-cran-jsonlite r-cran-data.table r-cran-stringi r-cran-stringr r-cran-glue r-cran-logger r-cran-snakecase
+        ```
+
+    2. Switch back to the R console and install the `binancer` R package from GitHub to interact with crypto exchanges (note the extra dependency to be installed from CRAN, no need to update any already installed package):
+
+        ```r
+        devtools::install_github('daroczig/binancer', upgrade = FALSE)
+        ```
+
+    3. First steps with live data: load the `binancer` package and then use the `binance_klines` function to get the last 3 hours of Bitcoin price changes (in USD) with 1-minute granularity -- resulting in an object like:
+
+        ```r
+        > str(klines)
+        Classes ‘data.table’ and 'data.frame':  180 obs. of  12 variables:
+         $ open_time                   : POSIXct, format: "2020-03-08 20:09:00" "2020-03-08 20:10:00" "2020-03-08 20:11:00" "2020-03-08 20:12:00" ...
+         $ open                        : num  8292 8298 8298 8299 8298 ...
+         $ high                        : num  8299 8299 8299 8299 8299 ...
+         $ low                         : num  8292 8297 8297 8298 8296 ...
+         $ close                       : num  8298 8298 8299 8298 8299 ...
+         $ volume                      : num  25.65 9.57 20.21 9.65 24.69 ...
+         $ close_time                  : POSIXct, format: "2020-03-08 20:09:59" "2020-03-08 20:10:59" "2020-03-08 20:11:59" "2020-03-08 20:12:59" ...
+         $ quote_asset_volume          : num  212759 79431 167677 80099 204883 ...
+         $ trades                      : int  371 202 274 186 352 271 374 202 143 306 ...
+         $ taker_buy_base_asset_volume : num  13.43 5.84 11.74 7.12 15.24 ...
+         $ taker_buy_quote_asset_volume: num  111430 48448 97416 59071 126493 ...
+         $ symbol                      : chr  "BTCUSDT" "BTCUSDT" "BTCUSDT" "BTCUSDT" ...
+         - attr(*, ".internal.selfref")=<externalptr>
+        ```
+
+        <details><summary>Click here for the code generating the above ...</summary>
+
+        ```r
+        library(binancer)
+        klines <- binance_klines('BTCUSDT', interval = '1m', limit = 60*3)
+        str(klines)
+        summary(klines$close)
+        ```
+        </details>
+
+    4. Visualize the data, eg on a simple line chart:
+
+        ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/binancer-plot-1.png)
+
+        <details><summary>Click here for the code generating the above ...</summary>
+
+        ```r
+        library(ggplot2)
+        ggplot(klines, aes(close_time, close)) + geom_line()
+        ```
+        </details>
+
+    5. Now create a candle chart, something like:
+
+        ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/binancer-plot-2.png)
+
+        <details><summary>Click here for the code generating the above ...</summary>
+
+        ```r
+        library(scales)
+        ggplot(klines, aes(open_time)) +
+            geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
+            geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
+            theme_bw() + theme('legend.position' = 'none') + xlab('') +
+            ggtitle(paste('Last Updated:', Sys.time())) +
+            scale_y_continuous(labels = dollar) +
+            scale_color_manual(values = c('#1a9850', '#d73027')) # RdYlGn
+        ```
+        </details>
+
+    6. Compare prices of 4 currencies (eg BTC, ETH, BNB and XRP) in the past 24 hours on 15 mins intervals:
+
+        ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/binancer-plot-3.png)
+
+        <details><summary>Click here for the code generating the above ...</summary>
+
+        ```r
+        library(data.table)
+        klines <- rbindlist(lapply(
+            c('BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT'),
+            binance_klines,
+            interval = '15m', limit = 4*24))
+        ggplot(klines, aes(open_time)) +
+            geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
+            geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
+            theme_bw() + theme('legend.position' = 'none') + xlab('') +
+            ggtitle(paste('Last Updated:', Sys.time())) +
+            scale_color_manual(values = c('#1a9850', '#d73027')) +
+            facet_wrap(~symbol, scales = 'free', nrow = 2)
+        ```
+        </details>
+
+
+
+    7. Some further useful functions:
+
+        - `binance_ticker_all_prices()`
+        - `binance_coins_prices()`
+        - `binance_credentials` and `binance_balances`
+
+    8. Create an R script that reports and/or plots on some cryptocurrencies, ideas:
+
+        - compute the (relative) change in prices of cryptocurrencies in the past 24 / 168 hours
+        - go back in time 1 / 12 / 24 months and "invest" $1K in BTC and see the value today
+        - write a bot buying and selling crypto on a virtual exchange
+
 Will be updated from week to week.
 
 ## Getting help
