@@ -831,41 +831,15 @@ Let's schedule a Jenkins job to check on the Bitcoin prices every hour!
             scale_y_continuous(labels = dollar) +
         ```
 
-    6. Compare prices of 4 currencies (eg BTC, ETH, BNB and XRP) in the past 24 hours on 15 mins intervals:
-
-        ![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/binancer-plot-3.png)
-
-        <details><summary>Click here for the code generating the above ...</summary>
-
-        ```r
-        library(data.table)
-        klines <- rbindlist(lapply(
-            c('BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT'),
-            binance_klines,
-            interval = '15m', limit = 4*24))
-        ggplot(klines, aes(open_time)) +
-            geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
-            geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
-            theme_bw() + theme('legend.position' = 'none') + xlab('') +
-            ggtitle(paste('Last Updated:', Sys.time())) +
-            scale_color_manual(values = c('#1a9850', '#d73027')) +
-            facet_wrap(~symbol, scales = 'free', nrow = 2)
-        ```
-        </details>
 
 
 
-    7. Some further useful functions:
 
-        - `binance_ticker_all_prices()`
-        - `binance_coins_prices()`
-        - `binance_credentials` and `binance_balances`
 
-    8. Create an R script that reports and/or plots on some cryptocurrencies, ideas:
 
-        - compute the (relative) change in prices of cryptocurrencies in the past 24 / 168 hours
-        - go back in time 1 / 12 / 24 months and "invest" $1K in BTC and see the value today
-        - write a bot buying and selling crypto on a virtual exchange
+
+
+
 
 Will be updated from week to week.
 
