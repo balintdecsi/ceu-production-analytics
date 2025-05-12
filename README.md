@@ -1066,6 +1066,7 @@ More on databases at the "Mastering R" class in the Spring semester ;)
 
 ## Week 3
 
+Quiz: https://forms.office.com/e/wRAxGqirdV (5 mins)
 
 Recap on what we covered last week:
 
