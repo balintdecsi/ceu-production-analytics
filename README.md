@@ -313,9 +313,7 @@ sudo apt-get update && sudo apt-get -y upgrade
 
 Quiz: https://forms.office.com/e/SgME7mHPM9 (5 mins)
 
-### Recap
-
-What we covered last week:
+Recap on what we covered last week:
 
 1. 2FA/MFA in AWS
 2. Creating EC2 nodes
@@ -670,7 +668,7 @@ If you cannot access RStudio Server on port 80, you might need to restart `nginx
 
 Next, set up SSL either with Nginx or placing an AWS Load Balancer in front of the EC2 node.
 
-## Warmup exercises
+### Warmup exercises
 
 Install `ggplot2` or your preferred Python packages to replicate the below steps that we will automate later:
 
@@ -1066,7 +1064,20 @@ More on databases at the "Mastering R" class in the Spring semester ;)
     cc$send()
     ```
 
+## Week 3
 
+
+Recap on what we covered last week:
+
+- Amazon Machine Image
+- Shared RStudio Server
+- Settup up Jenkins
+- Reverse proxy for more conenvient access to services
+- Scheduling R commands in Jenkins
+- Scheduling R script in Jenkins
+- Further Jenkins features, such as e-mail notifications and git integration
+- Introduction to Redis
+- Interacting with MS Teams
 
 
 
