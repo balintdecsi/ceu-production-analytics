@@ -1105,6 +1105,46 @@ New server for this week:
 * Create a Jenkins job to alert if Bitcoin price changed more than 5% in the past day.
 * Create a Jenkins job running hourly to generate a candlestick chart on the price of BTC and ETH.
 
+<details><summary>Example solution for the first exercise ...</summary>
+
+```r
+## get data right from the Binance API
+library(binancer)
+btc <- binance_klines('BTCUSDT', interval = '1m', limit = 1)$close
+
+## or from the local cache (updated every minute from Jenkins as per above)
+library(rredis)
+redisConnect()
+btc <- redisGet('username:price:BTC')
+
+## log whatever was retreived
+library(logger)
+log_info('The current price of a Bitcoin is ${btc}')
+
+## get the last alert time
+last_alert <- redisGet('username:alert:last')
+if (is.null(last_alert)) {
+  last_alert <- 0
+}
+since_last_alert <- as.numeric(
+    difftime(Sys.time(), last_alert, 
+    units = "secs"))
+
+## send alert
+if (since_last_alert >= 60 && (btc < 80000 | btc > 100000)) {
+  library(botor)
+  botor(region = 'eu-west-1')
+  webhook_url <- ssm_get_parameter('/teams/username')
+  library(teamr)
+  cc <- connector_card$new(hookurl = webhook_url)
+  cc$title('Bitcoin price alert!')
+  cc$text(paste('The current price of a Bitcoin is:', btc))
+  cc$send()
+}
+```
+
+</details>
+
 
 
 
