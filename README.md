@@ -1249,6 +1249,110 @@ if (since_last_alert >= 60 && (btc < 80000 | btc > 100000)) {
 
 4. Add a new API endpoint to generate a HTML report including both the above!
 
+    <details><summary>Example solution for the above ...</summary>
+
+    💪 Update the `markdown` package:
+
+    ```shell
+    sudo apt install -y r-cran-markdown
+    ```
+
+    Create an R markdown for the reporting:
+
+    `````md
+    ---
+    title: "report"
+    output: html_document
+    date: "`r Sys.Date()`"
+    ---
+
+    ```{r setup, include=FALSE}
+    knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+    library(binancer)
+    library(ggplot2)
+    library(scales)
+    library(knitr)
+
+    klines <- function() {
+      binance_klines('BTCUSDT', interval = '1m', limit = 60L)
+    }
+    ```
+
+    Bitcoin stats:
+
+    ```{r stats}
+    kable(klines()[, .(min = min(close), mean = mean(close), max = max(close))])
+    ```
+
+    On a nice plot:
+
+    ```{r plot}
+    ggplot(klines(), aes(open_time, )) +
+      geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
+      geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
+      theme_bw() + theme('legend.position' = 'none') + xlab('') +
+      ggtitle(paste('Last Updated:', Sys.time())) +
+      scale_y_continuous(labels = dollar) +
+      scale_color_manual(values = c('#1a9850', '#d73027'))
+    ```
+    `````
+
+    And the plumber file:
+
+    ```r
+    library(binancer)
+    library(ggplot2)
+    library(scales)
+    library(rmarkdown)
+    library(plumber)
+
+    #' Gets BTC data from the past hour
+    #' @return data.table
+    klines <- function() {
+        binance_klines('BTCUSDT', interval = '1m', limit = 60L)
+    }
+
+    #* BTC stats
+    #* @get /stats
+    function() {
+      klines()[, .(min = min(close), mean = mean(close), max = max(close))]
+    }
+
+    #* Generate plot
+    #* @get /plot
+    #* @serializer png
+    function() {
+      p <- ggplot(klines(), aes(open_time, )) +
+        geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
+        geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
+        theme_bw() + theme('legend.position' = 'none') + xlab('') +
+        ggtitle(paste('Last Updated:', Sys.time())) +
+        scale_y_continuous(labels = dollar) +
+        scale_color_manual(values = c('#1a9850', '#d73027')) # RdYlGn
+      print(p)
+    }
+
+    #* Generate HTML
+    #* @get /report
+    #* @serializer html
+    function(res) {
+       filename <- tempfile(fileext = '.html')
+       on.exit(unlink(filename))
+       render('report.Rmd', output_file = filename)
+       include_file(filename, res)
+    }
+    ```
+
+    Run via:
+
+    ```r
+    library(plumber)
+    pr('plumber.R') %>% pr_run(port = 8000)
+    ```
+    </details>
+
+Try to DRY (don't repeat yourself!) this up as much as possible.
+
 
 
 
