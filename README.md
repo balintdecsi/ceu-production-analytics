@@ -1097,6 +1097,14 @@ New server for this week:
 
 
 
+### Job Scheduler exercises
+
+* Create a Jenkins job to alert if Bitcoin price is below $80K or higher than $100K.
+* Limit this job to alert only once per hour, but alert should kick off as soon as possible (so don't schedule to run hourly, instead use a state to track when the last alert was sent).
+* Create a Jenkins job to alert if Bitcoin price changed more than $200 in the past hour.
+* Create a Jenkins job to alert if Bitcoin price changed more than 5% in the past day.
+* Create a Jenkins job running hourly to generate a candlestick chart on the price of BTC and ETH.
+
 
 
 
