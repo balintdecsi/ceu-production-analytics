@@ -1095,7 +1095,49 @@ New server for this week:
 9. Click "Launch instance"
 10. Note and click on the instance id
 
+#### Storing the secret webhook URL
 
+1. Do NOT store the webhook URL in plain-text (e.g. in your R script)!
+2. Let's use Amazon's Key Management Service: https://github.com/daroczig/CEU-R-prod/raw/2017-2018/AWR.Kinesis/AWR.Kinesis-talk.pdf (slides 73-75)
+3. 💪 Instead of using the Java SDK referenced in the above talk, let's install `boto3` Python module and use via `reticulate`:
+
+    ```shell
+    sudo apt install -y python3-boto3
+    sudo apt install -y r-cran-reticulate r-cran-botor
+    ```
+
+    Let's also let R know that we want to use the globally installed Python interpreter and its packages instead of setting up local virtual environments by adding the following to your `/etc/R/Renviron.site` file:
+
+    ```shell
+    RETICULATE_PYTHON=/usr/bin/python3
+    ```
+
+4. 💪 Create a key in the Key Management Service (KMS): `alias/de3`
+5. 💪 Grant access to that KMS key by creating an EC2 IAM role at https://console.aws.amazon.com/iam/home?region=eu-west-1#/roles with the `AWSKeyManagementServicePowerUser` policy and explicit grant access to the key in the KMS console
+6. 💪 Attach the newly created IAM role if not yet done
+7. Use this KMS key to encrypt the Slack token:
+
+    ```r
+    library(botor)
+    botor(region = 'eu-west-1')
+    kms_encrypt(webhook_url, key = 'alias/de3')
+    ```
+
+    Note, if R asks you to install Miniconda, say NO, as Python3 and the required packages have already been installed system-wide.
+
+8. Store the ciphertext and use `kms_decrypt` to decrypt later, see eg
+
+    ```r
+    kms_decrypt("AQICAHgzIk6iRoD8yYhFk//xayHj0G7uYfdCxrW6ncfAZob2MwHI8Q6jK8f6xby87I/+4BXBAAABYjCCAV4GCSqGSIb3DQEHBqCCAU8wggFLAgEAMIIBRAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAymjX9tB9jzUXVfrt8CARCAggEVpmQubNTH72mH3J1/54gNIbOUJ2bZ9VMRqg0zKkdnw7ke6lYhCODJtysKx+sgK8r7zzeSWLXrvX0nSP572boxVfQWFWWNg3f+ib17rkaDlBSbF0DM8nPoaHAQMK38HeOs6STmhRXmyiGY0OuxAWFWwxPoh2t72Yc7JJO5SLUDK6ddSkUQr3S3gjtMYc1L+QMEg9vkYEKICDGAprgZc21br5+eQRsowGkOSPw8mx+U0WAiMpwDGrzza+/hnVGmRvG4HDLaXbaRgouWyhtbEhuP5CKyGjOjYzoCY0WMcZOmowwG773ABijB+zr2SUVn2yJI5tMfn7b7aRUnQybLuPCEdmUk17lQvdJJw/0a+TpmMkMSYM9wfg==")
+    ```
+
+9. 💪 Alternatively, use the AWS Parameter Store or Secrets Manager, see eg https://eu-west-1.console.aws.amazon.com/systems-manager/parameters/?region=eu-west-1&tab=Table and granting the `AmazonSSMReadOnlyAccess` policy to your IAM role or user.
+
+    ```r
+    ssm_get_parameter('/teams/daroczig')
+    ```
+
+10. Store your own webhook in the Parameter Store and use it in your R script.
 
 ### Job Scheduler exercises
 
