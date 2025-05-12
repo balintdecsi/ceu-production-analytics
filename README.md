@@ -1187,6 +1187,39 @@ if (since_last_alert >= 60 && (btc < 80000 | btc > 100000)) {
 
 </details>
 
+### Make API endpoints
+
+1. 💪 Install plumber: [rplumber.io](https://www.rplumber.io)
+
+    ```sh
+    sudo apt install -y r-cran-plumber
+    ```
+
+2. Create an API endpoint to show the min, max and mean price of a BTC in the past hour!
+
+    Create `~/plumber.R` with the below content:
+
+    ```r
+    library(binancer)
+
+    #* BTC stats
+    #* @get /btc
+    function() {
+      klines <- binance_klines('BTCUSDT', interval = '1m', limit = 60L)
+      klines[, .(min = min(close), mean = mean(close), max = max(close))]
+    }
+    ```
+
+    Start the plumber application wither via clicking on the "Run API" button or the below commands:
+
+    ```r
+    library(plumber)
+    pr("plumber.R") %>% pr_run(host='0.0.0.0', port=8000)
+    ```
+
+3. Add a new API endpoint to generate the candlestick chart with dynamic symbol (default to BTC), interval and limit! Note that you might need a new `@serializer`, function arguments, and type conversions as well.
+
+    <details><summary>Example solution for the above ...</summary>
 
 
 
