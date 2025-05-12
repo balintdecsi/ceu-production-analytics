@@ -1080,6 +1080,20 @@ Recap on what we covered last week:
 - Introduction to Redis
 - Interacting with MS Teams
 
+New server for this week:
+
+1. Go the the Instances overview at https://eu-west-1.console.aws.amazon.com/ec2/v2/home?region=eu-west-1#Instances:sort=instanceId
+2. Click "Launch Instance"
+3. Provide a name for your server (e.g. `daroczig-de3-week3`) and some additional tags for resource tracking, including tagging downstream services, such as Instance and Volumes:
+    * Class: `DE3`
+    * Owner: `daroczig`
+4. Pick the `de3` AMI
+5. Pick `t3a.small` (2 GiB of RAM should be enough for most tasks) instance type (see more [instance types](https://aws.amazon.com/ec2/instance-types))
+6. Select your AWS key created above and launch
+7. Select the `de3` security group (granting access to ports 22, 8000, 8080, and 8787)
+8. Click "Advanced details" and select `ceudataserver` IAM instance profile
+9. Click "Launch instance"
+10. Note and click on the instance id
 
 
 
