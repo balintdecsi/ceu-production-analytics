@@ -1499,6 +1499,18 @@ Why API? Why R-based API? Examples
 
     Note the step installing the required R packages!
 
+    c. Build the Docker image:
+
+    ```sh
+    sudo docker build -t btc-report-api .
+    ```
+
+    d. Run a container based on the above image:
+
+    ```sh
+    sudo docker run -p 8000:8000 -ti btc-report-api plumber.R
+    ```
+
 
 
 
