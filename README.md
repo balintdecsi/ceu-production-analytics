@@ -1353,6 +1353,152 @@ if (since_last_alert >= 60 && (btc < 80000 | btc > 100000)) {
 
 Try to DRY (don't repeat yourself!) this up as much as possible.
 
+### R API containers
+
+Why API? Why R-based API? Examples
+
+* adtech
+* healthtech
+
+1. Write an R script that provides 3 API endpoints (look up examples from past week!):
+
+    * `/stats` reports on the min/mean/max BTC price from the past 3 hours
+    * `/plot` generates a candlestick chart on the price of BTC from past 3 hours
+    * `/report` generates a HTML report including both the above
+
+    <details><summary>Example solution for the above ...</summary>
+
+    💪 Update the `markdown` package:
+
+    ```shell
+    sudo apt install -y r-cran-markdown
+    ```
+
+    Create an R markdown for the reporting:
+
+    `````md
+    ---
+    title: "report"
+    output: html_document
+    date: "`r Sys.Date()`"
+    ---
+
+    ```{r setup, include=FALSE}
+    knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+    library(binancer)
+    library(ggplot2)
+    library(scales)
+    library(knitr)
+
+    klines <- function() {
+      binance_klines('BTCUSDT', interval = '1m', limit = 60L)
+    }
+    ```
+
+    Bitcoin stats:
+
+    ```{r stats}
+    kable(klines()[, .(min = min(close), mean = mean(close), max = max(close))])
+    ```
+
+    On a nice plot:
+
+    ```{r plot}
+    ggplot(klines(), aes(open_time, )) +
+      geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
+      geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
+      theme_bw() + theme('legend.position' = 'none') + xlab('') +
+      ggtitle(paste('Last Updated:', Sys.time())) +
+      scale_y_continuous(labels = dollar) +
+      scale_color_manual(values = c('#1a9850', '#d73027'))
+    ```
+    `````
+
+    And the plumber file:
+
+    ```r
+    library(binancer)
+    library(ggplot2)
+    library(scales)
+    library(rmarkdown)
+    library(plumber)
+
+    #' Gets BTC data from the past hour
+    #' @return data.table
+    klines <- function() {
+        binance_klines('BTCUSDT', interval = '1m', limit = 60L)
+    }
+
+    #* BTC stats
+    #* @get /stats
+    function() {
+      klines()[, .(min = min(close), mean = mean(close), max = max(close))]
+    }
+
+    #* Generate plot
+    #* @get /plot
+    #* @serializer png
+    function() {
+      p <- ggplot(klines(), aes(open_time, )) +
+        geom_linerange(aes(ymin = open, ymax = close, color = close < open), size = 2) +
+        geom_errorbar(aes(ymin = low, ymax = high), size = 0.25) +
+        theme_bw() + theme('legend.position' = 'none') + xlab('') +
+        ggtitle(paste('Last Updated:', Sys.time())) +
+        scale_y_continuous(labels = dollar) +
+        scale_color_manual(values = c('#1a9850', '#d73027')) # RdYlGn
+      print(p)
+    }
+
+    #* Generate HTML
+    #* @get /report
+    #* @serializer html
+    function(res) {
+       filename <- tempfile(fileext = '.html')
+       on.exit(unlink(filename))
+       render('report.Rmd', output_file = filename)
+       include_file(filename, res)
+    }
+    ```
+
+    Run via:
+
+    ```r
+    library(plumber)
+    pr('plumber.R') %>% pr_run(port = 8000)
+    ```
+    </details>
+
+2. Try to DRY (don't repeat yourself!) this up as much as possible.
+3. Bundle all the scripts into a single Docker image:
+
+    a. 💪 Install Docker:
+
+    ```shell
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+      https://download.docker.com/linux/ubuntu \
+      $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install -y docker-ce
+    ```
+
+    b. Create a new file named `Dockerfile` (File/New file/Text file to avoid auto-adding the `R` file extension) with the below content to add the required files and set the default working directory to the same folder:
+
+    ```
+    FROM rstudio/plumber
+
+    RUN apt-get update && apt-get install -y pandoc && apt-get clean && rm -rf /var/lib/apt/lists/
+    RUN install2.r ggplot2
+    RUN installGithub.r daroczig/binancer
+    ADD report.Rmd /app/report.Rmd
+    ADD plumber.R /app/plumber.R
+    EXPOSE 8000
+    WORKDIR /app
+    ```
+
+    Note the step installing the required R packages!
+
 
 
 
