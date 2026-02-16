@@ -148,6 +148,372 @@ ssh -i /path/to/your/pem ubuntu@ip-address-of-your-machine
 
 As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking "Connect" in the context menu of the instance (triggered by right click in the table).
 
+### Install RStudio Server on EC2
+
+Yes, although most of you are using Python, we will install RStudio Server (with
+support for both R and Python), as it comes with a lot of useful features for
+the coming hours at this class (e.g. it's most complete and production-ready open-source IDE supporting multiple users and languages).
+
+1. Look at the docs: https://www.rstudio.com/products/rstudio/download-server
+2. First, we will upgrade the system to the most recent version of the already installed packages. Note, check on the concept of a package manager!
+
+    Download Ubuntu `apt` package list:
+
+    ```sh
+    sudo apt update
+    ```
+
+    Optionally upgrade the system:
+
+    ```sh
+    sudo apt upgrade
+    ```
+
+    And optionally also reboot so that kernel upgrades can take effect.
+
+3. Install R
+
+    ```sh
+    sudo apt install r-base
+    ```
+
+    To avoid manually answering "Yes" to the question to confirm installation, you can specify the `-y` flag:
+
+    ```sh
+    sudo apt install -y r-base
+    ```
+
+4. Try R
+
+    ```sh
+    R
+    ```
+
+    For example:
+
+    ```r
+    1 + 4
+    # any ideas what this command does?
+    hist(runif(100))
+    # duh, where is the plot?!
+    ```
+
+    Exit:
+
+    ```r
+    q()
+    ```
+
+    Look at the files:
+
+    ```sh
+    ls
+    ls -latr
+    ```
+
+    Note, if you have X11 server installed, you can forward X11 through SSH to
+    render locally, but this can be complicated to set up on a random operating
+    system, and also not very convenient, so we will not bother with it for now.
+
+5. Try this in Python as well!
+
+    ```sh
+    $ python
+    Command 'python' not found, did you mean:
+      command 'python3' from deb python3
+      command 'python' from deb python-is-python3
+
+    $ python3 --version
+    Python 3.12.3
+    ```
+
+    Let's symlink `python` to `python3` to make it easier to use:
+
+    ```sh
+    sudo apt install python-is-python3
+    ```
+
+    And install `matplotlib`:
+
+    ```sh
+    sudo apt install python3-matplotlib
+    ```
+
+    Then replicate that histogram:
+
+    ```python
+    import matplotlib.pyplot as plt
+    import random
+
+    numbers = [random.random() for _ in range(100)]
+    plt.hist(numbers)
+    plt.show()
+    ```
+
+    But uh oh, there's no plot!
+
+    ```python
+    plt.savefig("python.png")
+    ```
+
+5. Install RStudio Server
+
+    ```sh
+    wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2026.01.0-392-amd64.deb
+    sudo apt install -y gdebi-core
+    sudo gdebi rstudio-server-2026.01.0-392-amd64.deb
+    ```
+
+6. Check process and open ports
+
+    ```sh
+    rstudio-server status
+    sudo rstudio-server status
+    sudo systemctl status rstudio-server
+    sudo ps aux | grep rstudio
+
+    sudo apt -y install net-tools
+    sudo netstat -tapen | grep LIST
+    sudo netstat -tapen
+    ```
+
+7. Look at the docs: http://docs.rstudio.com/ide/server-pro/
+
+### Connect to the RStudio Server
+
+1. Confirm that the service is up and running and the port is open
+
+    ```console
+    ubuntu@ip-172-31-12-150:~$ sudo ss -tapen | grep LIST
+    tcp        0      0 0.0.0.0:8787            0.0.0.0:*               LISTEN      0          49065       23587/rserver
+    tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      0          15671       1305/sshd
+    tcp6       0      0 :::22                   :::*                    LISTEN      0          15673       1305/sshd
+    ```
+
+2. Try to connect to the host from a browser on port 8787, eg http://foobar.eu-west-1.compute.amazonaws.com:8787
+3. Realize it's not working
+4. Open up port 8787 in the security group, by selecting your security group and click "Edit inbound rules":
+
+    ![](https://user-images.githubusercontent.com/495736/222724348-869d0703-05f2-4ef3-bd80-574362e73265.png)
+
+Now you should be able to access the service. If not, e.g. blocked by company firewall, don't worry, we can workaround that by using a proxy server -- to be set up in the next section.
+
+### Set up an easy to remember IP address
+
+Optionally you can associate a fixed IP address to your box, so that the IP address is not changing when you stop and start the box.
+
+1. Allocate a new Elastic IP address at https://eu-west-1.console.aws.amazon.com/ec2/v2/home?region=eu-west-1#Addresses:
+2. Name this resource by assigning the "Name" and "Owner" tags
+3. Associate this Elastic IP with your stopped box, then start it
+
+### Set up an easy to remember domain name
+
+Optionally you can associate a subdomain with your node, using the above created Elastic IP address:
+
+1. Go to Route 53: https://console.aws.amazon.com/route53/home
+2. Go to Hosted Zones and click on `de3.click`
+3. Create a new `A` record:
+
+    - fill in the desired `Record name` (subdomain), eg `foobar` (well, use your own username as the subdomain)
+    - paste the public IP address or hostname of your server in the `Value` field
+    - click `Create records`
+
+4. Now you will be able to access your box using this custom (sub)domain, no need to remember IP addresses.
+
+### Configuring for standard ports
+
+To avoid using ports like `8787` and `8080` (and get blocked by the firewall installed on the CEU WiFi), let's configure our services to listen on the standard 80 (HTTP) and potentially on the 443 (HTTPS) port as well, and serve RStudio on the `/rstudio`, and later Jenkins on the `/jenkins` path.
+
+For this end, we will use Caddy as a reverse-proxy, so let's install it first:
+
+```shell
+sudo apt install -y caddy
+```
+
+Then let's edit the main configuration file `/etc/caddy/Caddyfile`, which also do some transformations, eg rewriting the URL (removing the `/rstudio` path) before hitting RStudio Server. To edit the file, we can use the `nano` editor:
+
+```shell
+sudo nano /etc/caddy/Caddyfile
+```
+
+If you are not familiar with the `nano` editor, check the keyboard shortcuts at
+the bottom of the screen, e.g. `^X` (Ctrl+X keys pressed simultaneously) to
+exit, or `M-A` (Alt+A keys pressed simultaneously) to start marking text for
+later copying or deleting.
+
+Delete everything (either by patiently pressing the `Delete` or `Backspace`
+keys, or by pressing `M-A`, then navigating to the bottom of the file and
+pressing `^K`), and copy/paste (Shift+Insert or Ctrl+Shift+C) the following
+content:
+
+```
+:80 {
+    redir /rstudio /rstudio/ permanent
+    handle_path /rstudio/* {
+        reverse_proxy localhost:8787 {
+            transport http {
+                read_timeout 20d
+            }
+            # need to rewrite the Location header to remove the port number
+            # https://caddy.community/t/reverse-proxy-header-down-on-location-header-or-something-equivalent/13157/3
+            header_down  Location ([^:]+://[^:]+(:[0-9]+)?/)  ./
+        }
+    }
+}
+```
+
+And restart the Caddy service:
+
+```shell
+sudo systemctl restart caddy
+```
+
+Find more information at https://support.rstudio.com/hc/en-us/articles/200552326-Running-RStudio-Server-with-a-Proxy.
+
+Let's see if the port is open on the machine:
+
+```shell
+sudo ss -tapen|grep LIST
+```
+
+Let's see if we can access RStudio Server on the new path:
+
+```shell
+curl localhost/rstudio
+```
+
+Now let's see from the outside world ... and realize that we need to open up port 80!
+
+Now we need to tweak the config to support other services as well in the future e.g. Jenkins:
+
+```
+:80 {
+    redir /rstudio /rstudio/ permanent
+    handle_path /rstudio/* {
+        reverse_proxy localhost:8787 {
+            transport http {
+                read_timeout 20d
+            }
+            # need to rewrite the Location header to remove the port number
+            # https://caddy.community/t/reverse-proxy-header-down-on-location-header-or-something-equivalent/13157/3
+            header_down  Location ([^:]+://[^:]+(:[0-9]+)?/)  ./
+        }
+    }
+
+    handle /jenkins/* {
+        reverse_proxy 127.0.0.1:8080
+    }
+}
+```
+
+It might be useful to also proxy port 8000 for future use via updating the Caddy config to:
+
+```
+:80 {
+    redir /rstudio /rstudio/ permanent
+    handle_path /rstudio/* {
+        reverse_proxy localhost:8787 {
+            transport http {
+                read_timeout 20d
+            }
+            # need to rewrite the Location header to remove the port number
+            # https://caddy.community/t/reverse-proxy-header-down-on-location-header-or-something-equivalent/13157/3
+            header_down  Location ([^:]+://[^:]+(:[0-9]+)?/)  ./
+        }
+    }
+
+    handle /jenkins/* {
+        reverse_proxy 127.0.0.1:8080
+    }
+
+    handle_path /8000/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+}
+```
+
+This way you can access the above services via the below URLs:
+
+RStudio Server:
+
+* http://your.ip.address:8787
+* http://your.ip.address/rstudio
+
+Jenkins:
+
+* http://your.ip.address:8080/jenkins
+* http://your.ip.address/jenkins
+
+Port 8000:
+
+* http://your.ip.address:8000
+* http://your.ip.address/8000
+
+If you cannot access RStudio Server on port 80, you might need to restart `caddy` as per above.
+
+It's useful to note that above paths in the index page as a reminder, that you can achive by adding the following to the Caddy configuration:
+
+```
+handle / {
+    respond "Welcome to DE3! Are you looking for /rstudio or /jenkins?" 200
+}
+```
+
+Next, you might really want to set up SSL either with Caddy or placing an AWS
+Load Balancer in front of the EC2 node. For a simple setup, we can realy on
+Caddy's built-in SSL support using LetsEncrypt:
+
+1. Register a domain name (or use the already registered `de3.click` domain
+   subdomain), and point it to your EC2 node's public IP address:
+   https://us-east-1.console.aws.amazon.com/route53/v2/hostedzones
+2. You might need to wait a bit for the DNS to propagate. Check via `dig` or similar, e.g.:
+
+    ```
+    dig foobar.de3.click
+    ```
+
+3. Update the Caddy configuration to use the new domain name instead of `:80` in
+   `/etc/caddy/Caddyfile`:
+
+    ```
+    foobar.de3.click {
+        redir /rstudio /rstudio/ permanent
+        handle_path /rstudio/* {
+            reverse_proxy localhost:8787 {
+                transport http {
+                    read_timeout 20d
+                }
+                # need to rewrite the Location header to remove the port number
+                # https://caddy.community/t/reverse-proxy-header-down-on-location-header-or-something-equivalent/13157/3
+                header_down  Location ([^:]+://[^:]+(:[0-9]+)?/)  ./
+            }
+        }
+
+        handle /jenkins/* {
+            reverse_proxy 127.0.0.1:8080
+        }
+
+        handle_path /8000/* {
+            reverse_proxy 127.0.0.1:8000
+        }
+
+        handle / {
+            respond "Welcome to DE3! Are you looking for /rstudio or /jenkins?" 200
+        }
+    }
+    ```
+
+4. Caddy will then automatically obtain and renew the SSL certificate using
+   LetsEncrypt, and you will be able to access the services via the new domain
+   name through HTTPS. If you are interested in the related logs, you can view
+   them in the Caddy logs:
+
+    ```shell
+    sudo journalctl -u caddy
+    # follow logs
+    sudo journalctl -u caddy
+    ```
+
 ## Getting help
 
 File a [GitHub ticket](https://github.com/daroczig/CEU-R-prod/issues).
