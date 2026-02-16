@@ -514,6 +514,141 @@ Caddy's built-in SSL support using LetsEncrypt:
     sudo journalctl -u caddy
     ```
 
+### Connect again to the RStudio Server
+
+1. Authentication: http://docs.rstudio.com/ide/server-pro/authenticating-users.html
+2. Create a new user:
+
+    ```shell
+    sudo adduser foobar
+    ```
+
+3. Login & quick demo:
+
+    ```r
+    1+2
+    plot(runif(100))
+    install.packages('fortunes')
+    library(fortunes)
+    fortune()
+    fortune(200)
+    system('whoami')
+    ```
+
+4. Reload webpage (F5), realize we continue where we left the browser :)
+
+5. Create a Python script and try to run it (in class: don't run it yet, just pay attention to the shared screen):
+
+    ```python
+    import matplotlib.pyplot as plt
+    import random
+
+    numbers = [random.random() for _ in range(100)]
+    plt.hist(numbers)
+    plt.show()
+    ```
+
+    Note that RStudio Server will ask you to confirm the installation of a few
+    packages ... which takes ages (compiling C++ etc), so we better install the
+    binary packages instead:
+
+    ```sh
+    sudo apt install --no-install-recommends \
+      r-cran-jsonlite r-cran-reticulate r-cran-png
+    ```
+
+    Now return to the Python script. But we still cannot run it, as the
+    `matplotlib` package is not installed. Strange, we just installed it in the
+    shell! To understand what's happening, get back to R and check the Python
+    interpreter:
+
+    ```r
+    reticulate::py_config()
+    reticulate::py_require("matplotlib")
+    ```
+
+    Note that this is a temporary virtual environment, so you need to install
+    the packages again if you restart the R session.
+
+    Now the script runs .. until you restart the R session.
+
+    So let's create a persistent virtual environment for Python and install the
+    packages there:
+
+    ```r
+    library(reticulate)
+    virtualenv_create("de3")
+    virtualenv_install("de3", packages = c("matplotlib"))
+    use_virtualenv("de3", required = TRUE)
+    ```
+
+    Note that creating the virtual environment failed due to some missing OS dependencies (e.g. `pip`),
+    so let's install them first in the shell:
+
+    ```sh
+    sudo apt install python3-venv python3-pip python3-dev
+    ```
+
+    Then run the following commands in R, and then try to rerun the Python
+    script as well. You might need to restart R and go to the `Tools` menu /
+    `Global Options` / `Python` / `Use Virtual Environment` and select the `de3`
+    environment.
+
+    Now return to the Python script again, and rerun your script.
+
+6. Annoyed already with switching between R and Python? And then switching to
+    SSH? Let's try to simplify that by using the built-in terminal in RStudio:
+
+    ```console
+    $ whoami
+    ceu
+    $ sudo whoami
+    ceu is not in the sudoers file.  This incident will be reported.
+    ```
+
+7. Grant sudo access to the new user by going back to SSH with `root` access:
+
+    ```sh
+    sudo apt install -y mc
+    sudo mc
+    sudo mcedit /etc/sudoers
+    sudo adduser ceu admin
+    man adduser
+    man deluser
+    ```
+
+    Note 1: might need to relogin / restart RStudio / reload R / reload page .. to force a new shell login so that the updated group setting is applied
+
+    Note 2: you might want to add `NOPASSWD` to the `sudoers` file:
+
+    ```sh
+    ceu ALL=(ALL) NOPASSWD:ALL
+    ```
+
+    Although also note (3) the related security risks.
+
+8. Custom login page: http://docs.rstudio.com/ide/server-pro/authenticating-users.html#customizing-the-sign-in-page
+9. Custom port (e.g. 80): http://docs.rstudio.com/ide/server-pro/access-and-security.html#network-port-and-address
+
+    ```sh
+    echo "www-port=80" | sudo tee -a /etc/rstudio/rserver.conf
+    sudo rstudio-server restart
+
+### Python playground
+
+Great, we have a working environment for R and Python.
+Now let's try to do something useful with it!
+
+Create a Python or R script to get the most recent Bitcoin <> USD prices (e.g.
+from the Binance API), report the last price and the price change in the last 1
+hour, and plot a line chart of the price history, something like:
+
+```
+BTC current price is $42,000, with a standard deviation of 100.
+```
+
+![](https://raw.githubusercontent.com/daroczig/CEU-R-prod/2019-2020/images/binancer-plot-1.png)
+
 ## Getting help
 
 File a [GitHub ticket](https://github.com/daroczig/CEU-R-prod/issues).
