@@ -148,6 +148,115 @@ ssh -i /path/to/your/pem ubuntu@ip-address-of-your-machine
 
 As a last resort, use "EC2 Instance Connect" from the EC2 dashboard by clicking "Connect" in the context menu of the instance (triggered by right click in the table).
 
+### Install RStudio Server on EC2
+
+Yes, although most of you are using Python, we will install RStudio Server (with
+support for both R and Python), as it comes with a lot of useful features for
+the coming hours at this class (e.g. it's most complete and production-ready open-source IDE supporting multiple users and languages).
+
+1. Look at the docs: https://www.rstudio.com/products/rstudio/download-server
+2. First, we will upgrade the system to the most recent version of the already installed packages. Note, check on the concept of a package manager!
+
+    Download Ubuntu `apt` package list:
+
+    ```sh
+    sudo apt update
+    ```
+
+    Optionally upgrade the system:
+
+    ```sh
+    sudo apt upgrade
+    ```
+
+    And optionally also reboot so that kernel upgrades can take effect.
+
+3. Install R
+
+    ```sh
+    sudo apt install r-base
+    ```
+
+    To avoid manually answering "Yes" to the question to confirm installation, you can specify the `-y` flag:
+
+    ```sh
+    sudo apt install -y r-base
+    ```
+
+4. Try R
+
+    ```sh
+    R
+    ```
+
+    For example:
+
+    ```r
+    1 + 4
+    # any ideas what this command does?
+    hist(runif(100))
+    # duh, where is the plot?!
+    ```
+
+    Exit:
+
+    ```r
+    q()
+    ```
+
+    Look at the files:
+
+    ```sh
+    ls
+    ls -latr
+    ```
+
+    Note, if you have X11 server installed, you can forward X11 through SSH to
+    render locally, but this can be complicated to set up on a random operating
+    system, and also not very convenient, so we will not bother with it for now.
+
+5. Try this in Python as well!
+
+    ```sh
+    $ python
+    Command 'python' not found, did you mean:
+      command 'python3' from deb python3
+      command 'python' from deb python-is-python3
+
+    $ python3 --version
+    Python 3.12.3
+    ```
+
+    Let's symlink `python` to `python3` to make it easier to use:
+
+    ```sh
+    sudo apt install python-is-python3
+    ```
+
+    And install `matplotlib`:
+
+    ```sh
+    sudo apt install python3-matplotlib
+    ```
+
+    Then replicate that histogram:
+
+    ```python
+    import matplotlib.pyplot as plt
+    import random
+
+    numbers = [random.random() for _ in range(100)]
+    plt.hist(numbers)
+    plt.show()
+    ```
+
+    But uh oh, there's no plot!
+
+    ```python
+    plt.savefig("python.png")
+    ```
+
+5. Install RStudio Server
 ## Getting help
 
 File a [GitHub ticket](https://github.com/daroczig/CEU-R-prod/issues).
